@@ -1,0 +1,51 @@
+feat: add streamlit web interface and parameter controls
+
+import streamlit as st
+import torch
+from PIL import Image
+import os
+from main_function import style_transfer, load_image, im_convert
+
+st.set_page_config(page_title="AI 艺术风格迁移系统", layout="wide")
+
+st.title("🎨 智能图像风格迁移创作平台")
+st.markdown("本系统基于 VGG19 深度学习模型，实现内容与艺术风格的完美融合。")
+
+with st.sidebar:
+    st.header("⚙️ 参数设置")
+    epochs = st.slider("迭代轮数 (影响质量与速度)", 50, 1000, 300)
+    alpha = st.number_input("内容权重 (Alpha)", value=1.0)
+    beta = st.number_input("风格权重 (Beta)", value=1e6)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    content_file = st.file_uploader("上传内容图片", type=['jpg', 'png', 'webp'])
+    if content_file:
+        st.image(content_file, caption="原图预览", use_column_width=True)
+
+with col2:
+    # 预设几个风格
+    style_option = st.selectbox("选择艺术风格", ["梵高-星空", "毕加索", "水墨画", "自定义上传"])
+
+    if style_option == "自定义上传":
+        style_file = st.file_uploader("上传风格图片", type=['jpg', 'png', 'webp'])
+    else:
+        style_file = f"styles/{style_option}.jpg"
+
+if st.button("🚀 开始智能化生成"):
+    if content_file and style_file:
+        with st.spinner("AI 正在计算中，请稍候..."):
+            # 保存临时文件供算法读取
+            with open("temp_content.jpg", "wb") as f:
+                f.write(content_file.getbuffer())
+
+            style_transfer("temp_content.jpg", style_file, "output.jpg", epochs, alpha, beta)
+
+            st.success("生成成功！")
+            st.image("output.jpg", caption="风格化结果", use_column_width=True)
+
+            with open("output.jpg", "rb") as file:
+                st.download_button("💾 下载艺术作品", file, "art_result.jpg")
+    else:
+        st.warning("请先上传图片。")
